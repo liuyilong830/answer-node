@@ -1,9 +1,9 @@
 const connection = require('./db/index');
 const baseURL = 'http://localhost:5000';
 const toString = Object.prototype.toString;
-const timeReg = /(time|birthday)/ig;
-const numReg = /(id|num|count|sex)$/ig;
-const urlReg = /(icon|avatar)$/ig;
+const timeReg = /(time|birthday)$/i;
+const numReg = /^(is)|(id|num|count|sex)$/i;
+const urlReg = /(icon|avatar)$/i;
 
 const toType = function (target) {
   let str = toString.call(target);
@@ -63,7 +63,7 @@ const format = function(obj, filter = []) {
           while (/^\/.*!/.test(val)) {
             val = val.slice(1);
           }
-          obj[key] = baseURL + '/' + val;
+          obj[key] = baseURL + '/img/' + val;
         }
       }
     })
@@ -71,12 +71,12 @@ const format = function(obj, filter = []) {
   return obj;
 }
 
-const responseFormat = function(obj) {
+const responseFormat = function(obj, filter = []) {
   let type = toType(obj);
   if (type === 'Array') {
-    return obj.map(item => responseFormat(item));
+    return obj.map(item => responseFormat(item, filter));
   } else {
-    return format(obj);
+    return format(obj, filter);
   }
 }
 

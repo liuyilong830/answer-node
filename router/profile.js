@@ -3,17 +3,6 @@ const { tokenFailure, format, responseFormat, resBody } = require('../utils');
 const profile = new Router({
   prefix: '/profile'
 });
-const multer = require('koa-multer');
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/img/');
-  },
-  filename: function (req, file , cb) {
-    let filename = decodeURI(file.originalname);
-    cb(null, Date.now() + '-' + filename);
-  }
-});
-const upload = multer({ storage });
 
 const {
   joinClass,
@@ -56,6 +45,19 @@ profile.get('/class', async (ctx) => {
       joins,
       creates
     }
+  })
+})
+
+profile.get('/class/mycreated', async (ctx) => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid, rid } = ctx.info;
+  let creates = [];
+  if (rid === 1) {
+    creates = responseFormat(await createdClass(uid));
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: creates
   })
 })
 /**
@@ -218,21 +220,6 @@ profile.patch('/user/update', async (ctx) => {
       data: res
     })
   }
-})
-
-profile.post('/upload', async (ctx, next) => {
-  if (!tokenFailure(ctx.token, ctx)) return;
-  await next();
-}, upload.single('file'), ctx => {
-  let { filename, size } = ctx.req.file;
-  return resBody(ctx, {
-    message: '上传文件成功',
-    data: {
-      filename,
-      size,
-      path: 'http://localhost:5000/img/' + filename,
-    }
-  })
 })
 
 profile.get('/class/list', async ctx => {

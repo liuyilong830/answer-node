@@ -8,6 +8,7 @@ const path = require('path');
 const home = require('./router/home');
 const login = require('./router/login');
 const profile = require('./router/profile');
+const questions = require('./router/questions');
 const { secret } = require('./utils');
 const staticPath = './public';
 
@@ -53,6 +54,7 @@ app.use(check);
 app.use(login.routes()).use(login.allowedMethods());
 app.use(home.routes()).use(home.allowedMethods());
 app.use(profile.routes()).use(profile.allowedMethods());
+app.use(questions.routes()).use(questions.allowedMethods());
 app.listen(5000, () => {
   console.log('请访问: http://localhost:5000');
 });
