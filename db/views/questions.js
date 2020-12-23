@@ -9,6 +9,10 @@ const questions = {
     let sql = `select * from questions where qid = ?`;
     return queryFunc(sql, qid);
   },
+  queryQuestionByUid(uid, start, limit) {
+    let sql = `select * from questions where uid = ? limit ${start}, ${limit}`;
+    return queryFunc(sql, uid);
+  },
   createQuestionBank(uid, info) {
     let sql = `
       insert into questions(uid, qname, description, ishidden, istoclass, icon, createtime) 

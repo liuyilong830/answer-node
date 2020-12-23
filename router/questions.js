@@ -9,7 +9,21 @@ const {
   insertQuesofCls,
   queryQuestionById,
   insertTimu,
+  queryQuestionByUid,
 } = require('../db/views/questions');
+
+questions.get('/list/uid', async (ctx) => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { limit, start } = format(ctx.query);
+  let { uid } = ctx.info;
+  let res = await queryQuestionByUid(uid, start, limit);
+  return resBody(ctx, {
+    message: '查询成功',
+    data: {
+      list: responseFormat(res)
+    }
+  })
+})
 
 questions.put('/create', async (ctx) => {
   if (!tokenFailure(ctx.token, ctx)) return;
