@@ -45,6 +45,34 @@ const questions = {
     console.log(sql);
     return queryFunc(sql);
   },
+  queryTimus(qid) {
+    let sql = `select * from timu where quesid = ?`;
+    return queryFunc(sql, qid);
+  },
+  querySingles(qid, start = 0, limit = 10) {
+    let sql = `
+      select * 
+      from timu 
+      where quesid = ? and tnum != 0 and instr(res, '&&') = 0 limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, qid);
+  },
+  queryMultis(qid, start = 0, limit = 10) {
+    let sql = `
+      select * 
+      from timu 
+      where quesid = ? and tnum != 0 and instr(res, '&&') != 0 limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, qid);
+  },
+  queryShortAnswers(qid, start = 0, limit = 10) {
+    let sql = `
+      select * 
+      from timu 
+      where quesid = ? and tnum = 0 limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, qid);
+  },
 }
 
 module.exports = questions;

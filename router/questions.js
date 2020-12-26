@@ -10,6 +10,9 @@ const {
   queryQuestionById,
   insertTimu,
   queryQuestionByUid,
+  querySingles,
+  queryMultis,
+  queryShortAnswers,
 } = require('../db/views/questions');
 
 questions.get('/list/uid', async (ctx) => {
@@ -69,6 +72,42 @@ questions.put('/create/timu', async (ctx) => {
   return resBody(ctx, {
     message: '题目创建完成',
     data: res
+  })
+})
+
+questions.get('/timus', async (ctx) => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid是必选参数'
+    });
+  }
+  let [singles, multis, shortanswers] = await Promise.all([
+    querySingles(qid, 0, 10),
+    queryMultis(qid, 0, 10),
+    queryShortAnswers(qid, 0, 10)
+  ]);
+  singles.forEach(tm => {
+    tm.res = tm.res.split('&&');
+    tm.options = tm.options.split('&&');
+  })
+  multis.forEach(tm => {
+    tm.res = tm.res.split('&&');
+    tm.options = tm.options.split('&&');
+  })
+  shortanswers.forEach(tm => {
+    tm.options = [];
+    tm.res = [tm.res];
+  })
+  return resBody(ctx, {
+    message: '查询成功',
+    data: {
+      singles: responseFormat(singles),
+      multis: responseFormat(multis),
+      shortanswers: responseFormat(shortanswers)
+    }
   })
 })
 
