@@ -13,7 +13,16 @@ const {
   querySingles,
   queryMultis,
   queryShortAnswers,
+  queryAboutUser,
 } = require('../db/views/questions');
+
+const BaseUserAbout = function(userid, quid) {
+  this.userid = userid;
+  this.quid = quid;
+  this.iszan = 0;
+  this.iswork = 0;
+  this.iscollection = 0;
+}
 
 questions.get('/list/uid', async (ctx) => {
   if (!tokenFailure(ctx.token, ctx)) return;
@@ -77,7 +86,7 @@ questions.put('/create/timu', async (ctx) => {
 
 questions.get('/timus', async (ctx) => {
   if (!tokenFailure(ctx.token, ctx)) return;
-  let { qid } = format(ctx.query);
+  let { qid, start = 0, limit = 10 } = format(ctx.query);
   if (!qid) {
     return resBody(ctx, {
       status: 403,
@@ -85,9 +94,9 @@ questions.get('/timus', async (ctx) => {
     });
   }
   let [singles, multis, shortanswers] = await Promise.all([
-    querySingles(qid, 0, 10),
-    queryMultis(qid, 0, 10),
-    queryShortAnswers(qid, 0, 10)
+    querySingles(qid, start, limit),
+    queryMultis(qid, start, limit),
+    queryShortAnswers(qid, start, limit)
   ]);
   singles.forEach(tm => {
     tm.res = tm.res.split('&&');
@@ -107,6 +116,92 @@ questions.get('/timus', async (ctx) => {
       singles: responseFormat(singles),
       multis: responseFormat(multis),
       shortanswers: responseFormat(shortanswers)
+    }
+  })
+})
+
+questions.get('/aboutuser', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = format(ctx.info);
+  let { qid } = format(ctx.query);
+  if (!qid || !uid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid和uid是必选参数'
+    });
+  }
+  let res = await queryAboutUser(qid, uid);
+  if (!res.length) {
+    res.push(new BaseUserAbout(uid, qid));
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res[0]
+  });
+})
+
+questions.get('/timus/singles', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid, start, limit } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid是必选参数'
+    });
+  }
+  let singles = responseFormat(await querySingles(qid, start, limit));
+  singles.forEach(tm => {
+    tm.res = tm.res.split('&&');
+    tm.options = tm.options.split('&&');
+  });
+  return resBody(ctx, {
+    message: '查询成功',
+    data: {
+      singles,
+    }
+  })
+})
+
+questions.get('/timus/multis', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid, start, limit } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid是必选参数'
+    });
+  }
+  let multis = responseFormat(await queryMultis(qid, start, limit));
+  multis.forEach(tm => {
+    tm.res = tm.res.split('&&');
+    tm.options = tm.options.split('&&');
+  });
+  return resBody(ctx, {
+    message: '查询成功',
+    data: {
+      multis,
+    }
+  })
+})
+
+questions.get('/timus/shortanswers', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid, start, limit } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid是必选参数'
+    });
+  }
+  let shortanswers = responseFormat(await queryShortAnswers(qid, start, limit));
+  shortanswers.forEach(tm => {
+    tm.options = [];
+    tm.res = [tm.res];
+  });
+  return resBody(ctx, {
+    message: '查询成功',
+    data: {
+      shortanswers,
     }
   })
 })

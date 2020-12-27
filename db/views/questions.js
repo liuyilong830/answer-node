@@ -49,6 +49,14 @@ const questions = {
     let sql = `select * from timu where quesid = ?`;
     return queryFunc(sql, qid);
   },
+  queryAboutUser(qid, uid) {
+    let sql = `
+      select iszan, iswork, iscollection
+      from ques_operation 
+      where quid = ? and userid = ?
+    `;
+    return queryFunc(sql, qid, uid);
+  },
   querySingles(qid, start = 0, limit = 10) {
     let sql = `
       select * 

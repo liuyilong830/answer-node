@@ -5,7 +5,7 @@ const profile = {
     let sql = `
       select classid
       from classofstu
-      where sid = ? and classid not in(${createdids.join(',')})
+      where sid = ? ${createdids.length ? `and classid not in(${createdids.join(',')})` : ''}
     `
     return queryFunc(sql, uid);
   },
