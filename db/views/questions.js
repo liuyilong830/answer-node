@@ -1,4 +1,4 @@
-const { queryFunc } = require('../../utils');
+const { queryFunc, jointoStr } = require('../../utils');
 
 const questions = {
   deleteQuestionByClassid(classid) {
@@ -80,6 +80,19 @@ const questions = {
       where quesid = ? and tnum = 0 limit ${start}, ${limit}
     `;
     return queryFunc(sql, qid);
+  },
+  updateTimu(timu) {
+    let { tid, quesid, tname, tnum, options, res, description } = timu;
+    let str = jointoStr({tname, tnum, options, res, description});
+    let sql = `
+      update timu set ${str}
+      where tid=${tid} and quesid= ${quesid}
+    `
+    return queryFunc(sql);
+  },
+  deleteTimu(tid, quesid) {
+    let sql = `delete from timu where tid = ? and quesid = ?`;
+    return queryFunc(sql, tid, quesid);
   },
 }
 

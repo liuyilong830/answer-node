@@ -14,6 +14,8 @@ const {
   queryMultis,
   queryShortAnswers,
   queryAboutUser,
+  updateTimu,
+  deleteTimu,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -203,6 +205,32 @@ questions.get('/timus/shortanswers', async ctx => {
     data: {
       shortanswers,
     }
+  })
+})
+
+questions.patch('/timus/update', async ctx => {
+  let body = format(ctx.request.body);
+  let res = await updateTimu(body);
+  console.log(res);
+  return resBody(ctx, {
+    message: '更新完成',
+    data: res,
+  })
+})
+
+questions.delete('/timus/delete', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { tid, quesid } = format(ctx.query);
+  console.log(tid, quesid);
+  if (!tid || !quesid) {
+    return resBody(ctx, {
+      message: 'tid和quesid都是必选参数'
+    })
+  }
+  let res = await deleteTimu(tid, quesid);
+  return resBody(ctx, {
+    message: '删除成功',
+    data: res,
   })
 })
 
