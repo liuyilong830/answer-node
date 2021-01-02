@@ -16,6 +16,7 @@ const {
   queryAboutUser,
   updateTimu,
   deleteTimu,
+  queryTimus,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -232,6 +233,41 @@ questions.delete('/timus/delete', async ctx => {
     message: '删除成功',
     data: res,
   })
+})
+
+questions.get('/timus/all', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { quesid } = format(ctx.query);
+  if (!quesid) {
+    return resBody(ctx, {
+      message: 'quesid是必选参数'
+    })
+  }
+  let list = await queryTimus(quesid);
+  let singles = [], multis = [], shortanswers = [];
+  list.forEach(timu => {
+    timu.res = timu.res.split('&&');
+    timu.options = timu.options.split('&&');
+    if (timu.tnum === 0) {
+      timu.options = [];
+      shortanswers.push(timu);
+    } else if (timu.res.length < 2) {
+      singles.push(timu);
+    } else {
+      multis.push(timu);
+    }
+  })
+  return resBody(ctx, {
+    message: '查询成功',
+    data: {
+      types: {
+        singles,
+        multis,
+        shortanswers
+      },
+      count: list.length
+    }
+  });
 })
 
 module.exports = questions;
