@@ -5,7 +5,8 @@ const connection = mysql.createConnection({
   user: 'root',
   password: 'root',
   port: '3306',
-  database: 'answer'
+  database: 'answer',
+  socketPath: '/tmp/mysql.sock'
 })
 
 connection.connect();
