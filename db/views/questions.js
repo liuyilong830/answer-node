@@ -94,6 +94,43 @@ const questions = {
     let sql = `delete from timu where tid = ? and quesid = ?`;
     return queryFunc(sql, tid, quesid);
   },
+  queryTimuOperation(uid, tid) {
+    let sql = `select * from timu_operation where tuserid = ? and tmid = ?`;
+    return queryFunc(sql, uid, tid);
+  },
+  insertTimuOperations(uid, { tid, iszan, iscomment, iscollection }) {
+    let sql = `insert into timu_operation(tuserid, tmid, iszan, iscomment, iscollection) values(?,?,?,?,?)`;
+    return queryFunc(sql, uid, tid, iszan, iscomment, iscollection);
+  },
+  updateTimuQoreations(uid, info) {
+    let tid = info.tid;
+    delete info.tid;
+    let str = jointoStr(info);
+    let sql = `
+      update timu_operation set ${str}
+      where tuserid = ${uid} and tmid = ${tid};
+    `
+    return queryFunc(sql);
+  },
+  queryQuestOpt(userid, quesid) {
+    let sql = `select * from ques_operation where userid = ? and quid = ?`;
+    return queryFunc(sql, userid, quesid);
+  },
+  insertQuestOpt(userid, quesid) {
+    let sql = `insert into ques_operation(userid,quid) values(?,?)`;
+    return queryFunc(sql, userid, quesid);
+  },
+  updateQuestOpt(userid, {quesid, iswork, finishtime, work_json}) {
+    let str = '';
+    str += iswork ? `iswork=${iswork},` : '';
+    str += finishtime ? `finishtime=${finishtime},`: '';
+    str += work_json ? `work_json='${work_json}'`: '';
+    let sql = `
+      update ques_operation set ${str}
+      where userid = ${userid} and quid = ${quesid}
+    `;
+    return queryFunc(sql);
+  },
 }
 
 module.exports = questions;

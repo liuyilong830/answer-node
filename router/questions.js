@@ -17,6 +17,12 @@ const {
   updateTimu,
   deleteTimu,
   queryTimus,
+  queryTimuOperation,
+  insertTimuOperations,
+  updateTimuQoreations,
+  queryQuestOpt,
+  insertQuestOpt,
+  updateQuestOpt,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -267,6 +273,98 @@ questions.get('/timus/all', async ctx => {
       },
       count: list.length
     }
+  });
+})
+
+questions.get('/timu/operations', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let { tid } = format(ctx.query);
+  if (!uid || !tid) {
+    return resBody(ctx, {
+      status: 403,
+      message: `${!uid ? 'uid' : 'tid'}是必选参数`
+    });
+  }
+  let res = await queryTimuOperation(uid, tid);
+  if (!res.length) {
+    return resBody(ctx, {
+      message: '该用户没有相关这个题目的操作'
+    });
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res[0]
+  })
+})
+
+questions.post('/timu/set/operations', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let info = format(ctx.request.body);
+  let { tid } = info;
+  if (!uid || !tid) {
+    return resBody(ctx, {
+      status: 403,
+      message: `${!uid ? 'uid' : 'tid'}是必选参数`
+    });
+  }
+  let arr = await queryTimuOperation(uid, tid);
+  let res = null;
+  if (!arr.length) {
+    // 创建一条数据
+    res = await insertTimuOperations(uid, info);
+  } else {
+    // 更新一条数据
+    res = await updateTimuQoreations(uid, info);
+  }
+  return resBody(ctx, {
+    message: '设置成功',
+    data: res,
+  })
+})
+
+questions.get('/operations', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let { quesid } = format(ctx.query);
+  if (!uid || !quesid) {
+    return resBody(ctx, {
+      status: 403,
+      message: `${uid ? 'quesid' : 'uid'}是必选参数`
+    });
+  }
+  let res = await queryQuestOpt(uid, quesid);
+  if (!res.length) {
+    return resBody(ctx, {
+      message: '该用户没有相关这个题库的操作'
+    });
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res[0]
+  })
+})
+
+questions.post('/set/operations', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let body = format(ctx.request.body);
+  if (!uid || !body.quesid) {
+    return resBody(ctx, {
+      status: 403,
+      message: `${uid ? 'quesid' : 'uid'}是必选参数`
+    });
+  }
+  let arr = await queryQuestOpt(uid, body.quesid);
+  let res = null;
+  if (!arr.length) {
+    await insertQuestOpt(uid, body.quesid);
+  }
+  res = await updateQuestOpt(uid, body);
+  return resBody(ctx, {
+    message: '更新成功',
+    data: res
   });
 })
 
