@@ -111,6 +111,10 @@ const jointoStr = function(obj, options = ['=', ',']) {
   return str.slice(0, str.length-1);
 }
 
+const isdef = function (target) {
+  return typeof target === 'undefined' || target === null;
+}
+
 module.exports = {
   secret: 'pterlon',
   queryFunc,
@@ -120,4 +124,5 @@ module.exports = {
   resBody,
   jointoStr,
   identityInfo,
+  isdef,
 }

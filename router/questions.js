@@ -23,6 +23,7 @@ const {
   queryQuestOpt,
   insertQuestOpt,
   updateQuestOpt,
+  queryFinishedQuestUser,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -364,6 +365,22 @@ questions.post('/set/operations', async ctx => {
   res = await updateQuestOpt(uid, body);
   return resBody(ctx, {
     message: '更新成功',
+    data: res
+  });
+})
+
+questions.get('/ranklist/user', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { quesid } = format(ctx.query);
+  if (!quesid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'quesid是必选参数'
+    });
+  }
+  let res = await queryFinishedQuestUser(quesid);
+  return resBody(ctx, {
+    message: '查询成功',
     data: res
   });
 })

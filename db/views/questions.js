@@ -1,4 +1,4 @@
-const { queryFunc, jointoStr } = require('../../utils');
+const { queryFunc, jointoStr, isdef } = require('../../utils');
 
 const questions = {
   deleteQuestionByClassid(classid) {
@@ -120,17 +120,31 @@ const questions = {
     let sql = `insert into ques_operation(userid,quid) values(?,?)`;
     return queryFunc(sql, userid, quesid);
   },
-  updateQuestOpt(userid, {quesid, iswork, finishtime, work_json}) {
+  updateQuestOpt(userid, {quesid, iszan, iscollection, iswork, finishtime, work_json}) {
     let str = '';
-    str += iswork ? `iswork=${iswork},` : '';
-    str += finishtime ? `finishtime=${finishtime},`: '';
-    str += work_json ? `work_json='${work_json}'`: '';
+    str += !isdef(iszan) ? `iszan=${iszan},` : '';
+    str += !isdef(iscollection) ? `iscollection=${iscollection},` : '';
+    str += !isdef(iswork) ? `iswork=${iswork},` : '';
+    str += !isdef(finishtime) ? `finishtime=${finishtime},`: '';
+    str += !isdef(work_json) ? `work_json='${work_json}'`: '';
+    if (str[str.length-1] === ',') {
+      str = str.slice(0, str.length-1);
+    }
     let sql = `
       update ques_operation set ${str}
       where userid = ${userid} and quid = ${quesid}
     `;
     return queryFunc(sql);
   },
+  queryFinishedQuestUser(quesid) {
+    let sql = `
+      select u.uid, u.nickname, q.finishtime, q.iswork
+      from ques_operation q inner join user u on q.userid = u.uid
+      where quid = ? and finishtime is not null
+    `;
+    return queryFunc(sql, quesid);
+  },
+
 }
 
 module.exports = questions;
