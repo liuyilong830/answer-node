@@ -95,7 +95,6 @@ questions.put('/create/timu', async (ctx) => {
 })
 
 questions.get('/timus', async (ctx) => {
-  if (!tokenFailure(ctx.token, ctx)) return;
   let { qid, start = 0, limit = 10 } = format(ctx.query);
   if (!qid) {
     return resBody(ctx, {
@@ -151,7 +150,6 @@ questions.get('/aboutuser', async ctx => {
 })
 
 questions.get('/timus/singles', async ctx => {
-  if (!tokenFailure(ctx.token, ctx)) return;
   let { qid, start, limit } = format(ctx.query);
   if (!qid) {
     return resBody(ctx, {
@@ -173,7 +171,6 @@ questions.get('/timus/singles', async ctx => {
 })
 
 questions.get('/timus/multis', async ctx => {
-  if (!tokenFailure(ctx.token, ctx)) return;
   let { qid, start, limit } = format(ctx.query);
   if (!qid) {
     return resBody(ctx, {
@@ -195,7 +192,6 @@ questions.get('/timus/multis', async ctx => {
 })
 
 questions.get('/timus/shortanswers', async ctx => {
-  if (!tokenFailure(ctx.token, ctx)) return;
   let { qid, start, limit } = format(ctx.query);
   if (!qid) {
     return resBody(ctx, {

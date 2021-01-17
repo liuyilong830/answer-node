@@ -41,7 +41,7 @@ const tokenFailure = function(flag, ctx) {
   return flag;
 }
 
-const format = function(obj, filter = []) {
+const format = function(obj, filter = [], deletes = []) {
   let type = toType(obj);
   if (type === 'Null' || type === 'Undefined' || type === 'Number' || type === 'Boolean') return obj;
   if (type === 'Date') return obj.getTime();
@@ -67,16 +67,19 @@ const format = function(obj, filter = []) {
         }
       }
     })
+    deletes.forEach(key => {
+      delete obj[key];
+    })
   }
   return obj;
 }
 
-const responseFormat = function(obj, filter = []) {
+const responseFormat = function(obj, filter = [], deletes = []) {
   let type = toType(obj);
   if (type === 'Array') {
-    return obj.map(item => responseFormat(item, filter));
+    return obj.map(item => responseFormat(item, filter, deletes));
   } else {
-    return format(obj, filter);
+    return format(obj, filter, ['password', ...deletes]);
   }
 }
 
