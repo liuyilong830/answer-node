@@ -24,6 +24,7 @@ const {
   insertQuestOpt,
   updateQuestOpt,
   queryFinishedQuestUser,
+  insertWrongTimus,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -33,6 +34,21 @@ const BaseUserAbout = function(userid, quid) {
   this.iswork = 0;
   this.iscollection = 0;
 }
+
+questions.get('/qid', async ctx => {
+  let { qid } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 401,
+      message: 'qid是必选参数'
+    })
+  }
+  let [res] = responseFormat(await queryQuestionById(qid));
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res || {},
+  })
+})
 
 questions.get('/list/uid', async (ctx) => {
   if (!tokenFailure(ctx.token, ctx)) return;
@@ -379,6 +395,17 @@ questions.get('/ranklist/user', async ctx => {
     message: '查询成功',
     data: res
   });
+})
+
+questions.post('/wrongtimu/insert', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { list } = format(ctx.request.body);
+  let { uid } = ctx.info;
+  let res = await insertWrongTimus(uid, list);
+  return resBody(ctx, {
+    message: '批量插入数据成功',
+    data: res,
+  })
 })
 
 module.exports = questions;

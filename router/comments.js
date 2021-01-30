@@ -13,6 +13,7 @@ const {
   updateCommentCount,
   queryCommentByCidAndUid,
   queryChildComment,
+  queryCommentByUid,
 } = require('../db/views/comments')
 
 Comments.get('/queslist', async ctx => {
@@ -143,6 +144,25 @@ Comments.delete('/delete', async ctx => {
   return resBody(ctx, {
     message: '删除成功',
     count: index,
+  })
+})
+
+Comments.get('/myself', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let { start, limit } = format(ctx.query);
+  let res = responseFormat(await queryCommentByUid(uid, start, limit));
+  for (let i = 0; i < res.length; i++) {
+    let comment = res[i];
+    comment.targetInfo = {};
+    if (comment.targetid) {
+      let [info] = responseFormat(await queryCommentById(comment.targetid));
+      comment.targetInfo = info;
+    }
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res,
   })
 })
 

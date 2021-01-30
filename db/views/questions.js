@@ -144,7 +144,17 @@ const questions = {
     `;
     return queryFunc(sql, quesid);
   },
-
+  insertWrongTimus(uid, arr) {
+    let str = arr.map(({tid, fails, res }) => {
+      return `(${tid}, ${uid}, "${fails.join('&&')}", "${res.join('&&')}")`
+    }).join(',')
+    let sql = `
+      insert into wrong_topic(timu_id, user_id, fail_res, suc_res)
+      values
+      ${str}
+    `;
+    return queryFunc(sql)
+  },
 }
 
 module.exports = questions;

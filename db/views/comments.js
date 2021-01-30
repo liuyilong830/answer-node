@@ -75,6 +75,15 @@ const comments = {
     `
     return queryFunc(sql, cid);
   },
+  queryCommentByUid(uid, start = 0, limit = 10) {
+    let sql = `
+      select *
+      from comments c inner join user u on c.usid = u.uid inner join questions q on c.questionid = q.qid
+      where usid = ?
+      order by c.createtime desc limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, uid);
+  }
 }
 
 module.exports = comments;
