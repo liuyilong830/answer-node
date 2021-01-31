@@ -25,6 +25,7 @@ const {
   updateQuestOpt,
   queryFinishedQuestUser,
   insertWrongTimus,
+  queryMyWrongTimus,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -405,6 +406,32 @@ questions.post('/wrongtimu/insert', async ctx => {
   return resBody(ctx, {
     message: '批量插入数据成功',
     data: res,
+  })
+})
+
+questions.get('/wrongtimu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let arr = await queryMyWrongTimus(uid);
+  let res = [];
+  let map = {};
+  arr.forEach(tm => {
+    let temp = null;
+    if (map[tm.quesid] >= 0) {
+      temp = res[map[tm.quesid]];
+    } else {
+      map[tm.quesid] = res.length;
+      temp = [];
+      res.push(temp);
+    }
+    tm.options = tm.options.split('&&');
+    tm.suc_res = tm.suc_res.split('&&');
+    tm.fail_res = tm.fail_res.split('&&');
+    temp.push(tm);
+  })
+  return resBody(ctx, {
+    message: '查询成功',
+    data: responseFormat(res),
   })
 })
 

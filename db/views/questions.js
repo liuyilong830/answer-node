@@ -155,6 +155,14 @@ const questions = {
     `;
     return queryFunc(sql)
   },
+  queryMyWrongTimus(uid) {
+    let sql = `
+      select tid, tname, fail_res, suc_res, quesid, t.description, tnum, options, icon, user_id, qname
+      from wrong_topic w inner join timu t on t.tid = w.timu_id inner join questions q on q.qid = t.quesid
+      where user_id = ?
+    `;
+    return queryFunc(sql, uid);
+  },
 }
 
 module.exports = questions;
