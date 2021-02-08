@@ -155,6 +155,14 @@ const questions = {
     `;
     return queryFunc(sql)
   },
+  queryMyWrongTimuByTid(uid, tid) {
+    let sql = `
+      select tid, tname, fail_res, suc_res, quesid, t.description, tnum, options, icon, user_id, qname
+      from wrong_topic w inner join timu t on t.tid = w.timu_id inner join questions q on q.qid = t.quesid
+      where user_id = ? and timu_id = ?
+    `;
+    return queryFunc(sql, uid, tid);
+  },
   queryMyWrongTimus(uid) {
     let sql = `
       select tid, tname, fail_res, suc_res, quesid, t.description, tnum, options, icon, user_id, qname
@@ -162,6 +170,37 @@ const questions = {
       where user_id = ?
     `;
     return queryFunc(sql, uid);
+  },
+  deleteMyWrongTimus(uid, tid) {
+    let sql = `
+      delete from wrong_topic where user_id = ? and timu_id = ?
+    `;
+    return queryFunc(sql, uid, tid);
+  },
+  setQuestionScore(qid, score) {
+    let sql = `
+      update questions set score=score+${score}
+      where qid = ${qid}
+    `
+    return queryFunc(sql)
+  },
+  setQuestion(qid, info) {
+    let insertArr = ['zancount', 'workcount', 'comcount', 'collcount', 'score'];
+    let othersArr = ['mode','ishidden', 'icon', 'description', 'qname'];
+    let keys = Object.keys(info);
+    let str = '';
+    keys.forEach(key => {
+      if (insertArr.includes(key)) {
+        str += `${key}=${key}+${info[key]},`;
+      } else if (othersArr.includes(key)) {
+        str += `${key}=${info[key]},`;
+      }
+    })
+    let sql = `
+      update questions set ${str.slice(0, str.length-1)}
+      where qid = ${qid}
+    `
+    return queryFunc(sql)
   },
 }
 

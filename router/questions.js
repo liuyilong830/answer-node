@@ -26,6 +26,10 @@ const {
   queryFinishedQuestUser,
   insertWrongTimus,
   queryMyWrongTimus,
+  deleteMyWrongTimus,
+  queryMyWrongTimuByTid,
+  setQuestionScore,
+  setQuestion,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -432,6 +436,47 @@ questions.get('/wrongtimu', async ctx => {
   return resBody(ctx, {
     message: '查询成功',
     data: responseFormat(res),
+  })
+})
+
+questions.delete('/wrongtimu/del', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { tid } = format(ctx.query);
+  if (!tid) {
+    return resBody(ctx, {
+      status: 401,
+      message: 'tid是必须的参数'
+    })
+  }
+  let { uid } = ctx.info;
+  let [tm] = await queryMyWrongTimuByTid(uid, tid);
+  if (!tm) {
+    return resBody(ctx, {
+      message: '删除成功',
+    })
+  }
+  await deleteMyWrongTimus(uid, tid);
+  return resBody(ctx, {
+    message: '删除成功',
+  })
+})
+
+questions.patch('/update', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid, info } = format(ctx.request.body);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 401,
+      message: 'qid是必须的参数'
+    });
+  }
+  let res = {};
+  if (info) {
+    res = await setQuestion(qid, info);
+  }
+  return resBody(ctx, {
+    message: '更新成功',
+    data: res,
   })
 })
 
