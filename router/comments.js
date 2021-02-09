@@ -14,6 +14,8 @@ const {
   queryCommentByCidAndUid,
   queryChildComment,
   queryCommentByUid,
+  queryTimuCommentList,
+  queryTimuCommentByUid,
 } = require('../db/views/comments')
 
 Comments.get('/queslist', async ctx => {
@@ -150,8 +152,18 @@ Comments.delete('/delete', async ctx => {
 Comments.get('/myself', async ctx => {
   if (!tokenFailure(ctx.token, ctx)) return;
   let { uid } = ctx.info;
-  let { start, limit } = format(ctx.query);
-  let res = responseFormat(await queryCommentByUid(uid, start, limit));
+  let { start, limit, istimu } = format(ctx.query, ['istimu']);
+  let res = [];
+  if (istimu === 'true') {
+    res = responseFormat(await queryTimuCommentByUid(uid, start, limit));
+    res = res.map(item => {
+      item.options = item.options.split('&&');
+      item.res = item.res.split('&&');
+      return item;
+    })
+  } else {
+    res = responseFormat(await queryCommentByUid(uid, start, limit));
+  }
   for (let i = 0; i < res.length; i++) {
     let comment = res[i];
     comment.targetInfo = {};
@@ -163,6 +175,21 @@ Comments.get('/myself', async ctx => {
   return resBody(ctx, {
     message: '查询成功',
     data: res,
+  })
+})
+
+Comments.get('/timulist', async ctx => {
+  let { tid, start = 0, limit = 10 } = format(ctx.query);
+  if (isdef(tid)) {
+    return resBody(ctx, {
+      status: 401,
+      message: 'tid是必选参数'
+    });
+  }
+  let arr = await queryTimuCommentList(tid, start, limit);
+  return resBody(ctx, {
+    message: '查询成功',
+    data: responseFormat(arr)
   })
 })
 

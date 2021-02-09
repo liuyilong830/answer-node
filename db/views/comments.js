@@ -83,7 +83,24 @@ const comments = {
       order by c.createtime desc limit ${start}, ${limit}
     `;
     return queryFunc(sql, uid);
-  }
+  },
+  queryTimuCommentByUid(uid, start = 10, limit = 10) {
+    let sql = `
+      select *
+      from comments c inner join user u on c.usid = u.uid inner join timu t on t.tid = c.timuid
+      where usid = ?
+      order by c.createtime desc limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, uid);
+  },
+  queryTimuCommentList(tid, start = 0, limit = 10) {
+    let sql = `
+      select *
+      from comments c inner join user u on c.usid = u.uid
+      where timuid = ? and c.fromid is null and c.targetid is null limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, tid);
+  },
 }
 
 module.exports = comments;
