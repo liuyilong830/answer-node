@@ -28,8 +28,8 @@ const {
   queryMyWrongTimus,
   deleteMyWrongTimus,
   queryMyWrongTimuByTid,
-  setQuestionScore,
   setQuestion,
+  queryCollection,
 } = require('../db/views/questions');
 
 const BaseUserAbout = function(userid, quid) {
@@ -476,6 +476,27 @@ questions.patch('/update', async ctx => {
   }
   return resBody(ctx, {
     message: '更新成功',
+    data: res,
+  })
+})
+
+questions.get('/collections', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { istimu } = ctx.query;
+  let { uid } = ctx.info;
+  let res;
+  if (istimu === 'true') {
+    res = await queryCollection(uid, true);
+    res = res.map(item => {
+      item.options = item.options.split('&&');
+      item.res = item.res.split('&&');
+      return responseFormat(item);
+    })
+  } else {
+    res = responseFormat(await queryCollection(uid, false))
+  }
+  return resBody(ctx, {
+    message: '查询成功',
     data: res,
   })
 })

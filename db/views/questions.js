@@ -177,13 +177,6 @@ const questions = {
     `;
     return queryFunc(sql, uid, tid);
   },
-  setQuestionScore(qid, score) {
-    let sql = `
-      update questions set score=score+${score}
-      where qid = ${qid}
-    `
-    return queryFunc(sql)
-  },
   setQuestion(qid, info) {
     let insertArr = ['zancount', 'workcount', 'comcount', 'collcount', 'score'];
     let othersArr = ['mode','ishidden', 'icon', 'description', 'qname'];
@@ -201,6 +194,23 @@ const questions = {
       where qid = ${qid}
     `
     return queryFunc(sql)
+  },
+  queryCollection(uid, istimu) {
+    let sql = '';
+    if (istimu) {
+      sql = `
+        select tid, tname, t.options, tnum, t.description, iscollection, iscomment, iszan, res, qid, q.mode, ishidden, uid, icon, score, istoclass, workcount, zancount, comcount, collcount
+        from timu_operation top inner join timu t on top.tmid = t.tid inner join questions q on q.qid = t.quesid
+        where tuserid = ?
+      `;
+    } else {
+      sql = `
+        select * 
+        from ques_operation qo inner join questions q on qo.quid = q.qid
+        where userid = ?
+      `;
+    }
+    return queryFunc(sql, uid);
   },
 }
 
