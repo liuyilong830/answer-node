@@ -10,6 +10,7 @@ const login = require('./router/login');
 const profile = require('./router/profile');
 const questions = require('./router/questions');
 const comments = require('./router/comments');
+const game = require('./router/game');
 const { secret } = require('./utils');
 const staticPath = './public';
 
@@ -57,6 +58,7 @@ app.use(home.routes()).use(home.allowedMethods());
 app.use(profile.routes()).use(profile.allowedMethods());
 app.use(questions.routes()).use(questions.allowedMethods());
 app.use(comments.routes()).use(comments.allowedMethods());
+app.use(game.routes()).use(game.allowedMethods());
 app.listen(5000, () => {
   console.log('请访问: http://localhost:5000');
 });

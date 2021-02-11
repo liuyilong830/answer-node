@@ -201,13 +201,13 @@ const questions = {
       sql = `
         select tid, tname, t.options, tnum, t.description, iscollection, iscomment, iszan, res, qid, q.mode, ishidden, uid, icon, score, istoclass, workcount, zancount, comcount, collcount
         from timu_operation top inner join timu t on top.tmid = t.tid inner join questions q on q.qid = t.quesid
-        where tuserid = ?
+        where tuserid = ? and top.iscollection = 1
       `;
     } else {
       sql = `
         select * 
         from ques_operation qo inner join questions q on qo.quid = q.qid
-        where userid = ?
+        where userid = ? and qo.iscollection = 1
       `;
     }
     return queryFunc(sql, uid);
