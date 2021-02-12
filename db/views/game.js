@@ -19,6 +19,23 @@ const game = {
       order by curr_integral desc, rankcount asc limit ${start}, ${limit}
     `;
     return queryFunc(sql);
+  },
+  queryRankListAll() {
+    let sql = `
+      select * from user
+      where curr_integral != 0
+      order by curr_integral desc, rankcount asc
+    `;
+    return queryFunc(sql);
+  },
+  queryAppointmentGame(uid, start = 0, limit = 10) {
+    let sql = `
+      select * 
+      from rank_game r inner join challenge_record c on r.rankid = c.rankid
+      where c.chuserid = ?
+      order by status desc limit ${start}, ${limit}
+    `;
+    return queryFunc(sql, uid);
   }
 }
 
