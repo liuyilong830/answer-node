@@ -18,6 +18,13 @@ const {
   deleteChallengeRecord,
   queryDoingGames,
   updateChallengeRecord,
+  isDoingGame,
+  queryGameById,
+  queryChallengeRecordById,
+  queryCollectTimuByRid,
+  querySinglesById,
+  queryMultisById,
+  queryFillsById,
 } = require('../db/views/game');
 
 Game.get('/danlist', async ctx => {
@@ -76,15 +83,17 @@ Game.get('/ranklist/all', async ctx => {
   })
 })
 
-let gameAndJobMap = {};
+let gameAndJobMap = new Map();
+
 Game.get('/appointment', async ctx => {
   if (!tokenFailure(ctx.token, ctx)) return;
   let { start, limit } = format(ctx.query);
   let { uid } = ctx.info;
   let res = await queryAppointmentGame(uid, start, limit);
+  /* 暂时在这处理，今后需要移植到新增 game的接口中在新增成功之后就进行注册定时任务 */
   res.forEach(item => {
     let { latetime, endtime, starttime, prompttime, challengeid } = item;
-    if (gameAndJobMap[challengeid]) return;
+    if (gameAndJobMap.has(challengeid)) return;
     if (Date.now() - new Date(starttime).getTime() > 0) return;
     let job = new schedule.scheduleJob(new Date(starttime), () => {
       updateChallengeRecord(uid, challengeid, { status: 1 });
@@ -95,12 +104,12 @@ Game.get('/appointment', async ctx => {
           job = new schedule.scheduleJob(new Date(endtime), () => {
             updateChallengeRecord(uid, challengeid, { status: 4 });
             job.cancel();
-            delete gameAndJobMap[challengeid];
+            gameAndJobMap.delete(challengeid);
           })
         })
       })
     });
-    gameAndJobMap[challengeid] = job;
+    gameAndJobMap.set(challengeid, job);
   })
   return resBody(ctx, {
     message: '查询成功',
@@ -184,6 +193,130 @@ Game.patch('/set/challenge_record', async ctx => {
   return resBody(ctx, {
     message: '操作成功',
     data: res,
+  })
+})
+
+Game.get('/isdoing', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { challengeid } = format(ctx.query);
+  if (!challengeid) {
+    return resBody(ctx, {
+      message: 'challengeid是必须的',
+      status: 403,
+    })
+  }
+  let { uid } = ctx.info;
+  let [res] = await isDoingGame(uid, challengeid);
+  return resBody(ctx, {
+    message: '查询成功',
+    data: !!res,
+  })
+})
+
+Game.get('/byid', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { rankid } = format(ctx.query);
+  if (!rankid) {
+    return resBody(ctx, {
+      message: 'rankid是必须的',
+      status: 403,
+    })
+  }
+  let { uid } = ctx.info;
+  let res = responseFormat(await queryGameById(rankid, uid));
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res,
+  })
+})
+
+Game.patch('/set/visible_count', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { challengeid } = format(ctx.request.body);
+  let { uid } = ctx.info;
+  let [res] = await queryChallengeRecordById(challengeid);
+  let { visible_count, allow_visible_count } = res;
+  if (visible_count >= allow_visible_count) {
+    // 已经超过允许的跳出次数，该判定为舞弊
+    return resBody(ctx, {
+      message: '超出限制次数，作为舞弊处理',
+      data: {
+        count: -1
+      }
+    });
+  } else {
+    await updateChallengeRecord(uid, challengeid, {visible_count: 1});
+    return resBody(ctx, {
+      message: '操作成功',
+      data: {
+        count: allow_visible_count - visible_count - 1,
+      }
+    });
+  }
+})
+
+Game.get('/timulist', async ctx => {
+  let { rankid } = format(ctx.query);
+  let arr = await queryCollectTimuByRid(rankid);
+  let timus = {
+    singles: [],
+    multis: [],
+    fills: [],
+  };
+  for (let i = 0; i < arr.length; i++) {
+    let temp;
+    let res;
+    if (arr[i].s_id) {
+      temp = responseFormat((await querySinglesById(arr[i].s_id))[0]);
+      temp.options = temp.options.split('&&');
+      temp.res = temp.res.split('&&');
+      res = timus.singles;
+    } else if (arr[i].m_id) {
+      temp = responseFormat((await queryMultisById(arr[i].m_id))[0]);
+      temp.options = temp.options.split('&&');
+      temp.res = temp.res.split('&&');
+      res = timus.multis;
+    } else if (arr[i].f_id) {
+      temp = responseFormat((await queryFillsById(arr[i].f_id))[0]);
+      temp.res_json = JSON.parse(temp.res_json);
+      res = timus.fills;
+    }
+    res.push(temp);
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: timus,
+  })
+})
+
+Game.post('/isright/timu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { tag, id, result } = format(ctx.request.body);
+  if (!['single', 'multi', 'fill'].includes(tag)) {
+    return resBody(ctx, {
+      message: '标志必须为single、multi、fill这三种中的一个',
+      status: 403,
+    })
+  }
+  let flag = false;
+  if (tag === 'single') {
+    let [timu] = await querySinglesById(id);
+    flag = timu.res === result[0];
+  } else if (tag === 'multi') {
+    let [timu] = await queryMultisById(id);
+    let res = timu.res.split('&&');
+    flag = result.every(item => res.includes(item));
+  } else if (tag === 'fill') {
+    let [timu] = await queryFillsById(id);
+    let obj = JSON.parse(timu.res_json);
+    let keys = Object.keys(obj);
+    flag = result.map((item,i) => {
+      return obj[keys[i]].includes(item);
+    })
+  }
+  return resBody(ctx, {
+    message: '查询成功',
+    data: flag,
   })
 })
 

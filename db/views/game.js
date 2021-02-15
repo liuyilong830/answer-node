@@ -82,11 +82,19 @@ const game = {
     `;
     return queryFunc(sql, uid);
   },
+  isDoingGame(uid, challengeid) {
+    let sql = `
+      select * 
+      from rank_game r inner join challenge_record c on r.rankid = c.rankid
+      where c.chuserid = ? and c.challengeid = ? and c.status = 1
+    `;
+    return queryFunc(sql, uid, challengeid);
+  },
   updateChallengeRecord(uid, challengeid, info) {
     let str = '';
     let keyStr = ['finishtime', 'json']
     let keyint = ['time', 'finishtime', 'json', 'status'];
-    let keyinsert = ['res_count', 'fail_count', 'prompt_count', 'score'];
+    let keyinsert = ['res_count', 'fail_count', 'visible_count', 'score'];
     let keys = Object.keys(info);
     for (let i = 0; i < keys.length; i++) {
       let key = keys[i];
@@ -95,7 +103,7 @@ const game = {
       } else if (keyint.includes(key)) {
         str += `${key}=${info[key]}`;
       } else if (keyinsert.includes(key)) {
-        str += `${key}+=${info[key]}`;
+        str += `${key}=${key}+${info[key]}`;
       }
     }
     console.log(str);
@@ -104,6 +112,49 @@ const game = {
       where challengeid = ${challengeid} and chuserid = ${uid}
     `;
     return queryFunc(sql);
+  },
+  queryGameById(rankid, uid) {
+    let sql = `
+      select * 
+      from rank_game r inner join challenge_record c on r.rankid = c.rankid
+      where r.rankid = ? and c.chuserid = ?
+    `;
+    return queryFunc(sql, rankid, uid);
+  },
+  queryChallengeRecordById(challengeid) {
+    let sql = `select * from challenge_record where challengeid = ${challengeid}`;
+    return queryFunc(sql);
+  },
+  queryCollectTimuByRid(rankid) {
+    let sql = `
+      select *
+      from collect_timu c
+      where c.r_id = ?
+    `;
+    return queryFunc(sql, rankid);
+  },
+  querySinglesById(sid) {
+    let sql = `
+      select singleid as id,name,img,options,res,description,options_count,score,uid,nickname,avatar
+      from singles s inner join user u on s.single_uid = u.uid
+      where singleid = ?
+    `;
+    return queryFunc(sql, sid);
+  },
+  queryMultisById(mid) {
+    let sql = `
+      select multiid as id,name,img,options,res,description,options_count,res_count,score,uid,nickname,avatar
+      from multis m inner join user u on m.multi_uid = u.uid
+      where multiid = ?
+    `;
+    return queryFunc(sql, mid);
+  },
+  queryFillsById(fid) {
+    let sql = `
+      select fillid as id,name,img,res_json,description,res_count,score,uid,nickname,avatar
+      from fills f inner join user u on f.fill_uid = u.uid
+      where fillid = ?`;
+    return queryFunc(sql, fid);
   },
 }
 
