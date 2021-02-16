@@ -1,4 +1,5 @@
 const Router = require('@koa/router');
+const moment = require('moment');
 const schedule = require('node-schedule');
 const Game = new Router({
   prefix: '/game'
@@ -13,7 +14,6 @@ const {
   queryAppointmentGame,
   queryAppointmentOtherGames,
   queryAllGames,
-  updateGameAppointment,
   insertChallengeRecord,
   deleteChallengeRecord,
   queryDoingGames,
@@ -25,6 +25,11 @@ const {
   querySinglesById,
   queryMultisById,
   queryFillsById,
+  updateGameInfo,
+  updateUserAboutGame,
+  queryAppoinmentUserById,
+  queryGameByRankid,
+  insertReward,
 } = require('../db/views/game');
 
 Game.get('/danlist', async ctx => {
@@ -92,24 +97,50 @@ Game.get('/appointment', async ctx => {
   let res = await queryAppointmentGame(uid, start, limit);
   /* 暂时在这处理，今后需要移植到新增 game的接口中在新增成功之后就进行注册定时任务 */
   res.forEach(item => {
-    let { latetime, endtime, starttime, prompttime, challengeid } = item;
-    if (gameAndJobMap.has(challengeid)) return;
+    let { latetime, endtime, starttime, prompttime, rankid, rname } = item;
+    if (gameAndJobMap.has(rankid)) return;
     if (Date.now() - new Date(starttime).getTime() > 0) return;
     let job = new schedule.scheduleJob(new Date(starttime), () => {
-      updateChallengeRecord(uid, challengeid, { status: 1 });
+      console.log(`${rankid}到达了开始时间`);
+      updateGameInfo(rankid, { status: 1 });
       job = new schedule.scheduleJob(new Date(latetime), () => {
-        updateChallengeRecord(uid, challengeid, { status: 3 });
+        console.log(`${rankid}到达了迟到禁止入场时间`);
+        updateGameInfo(rankid, { status: 3 });
         job = new schedule.scheduleJob(new Date(prompttime), () => {
+          console.log(`${rankid}到达了通知挑战赛还剩多少分钟`);
           // 发送通知
           job = new schedule.scheduleJob(new Date(endtime), () => {
-            updateChallengeRecord(uid, challengeid, { status: 4 });
-            job.cancel();
-            gameAndJobMap.delete(challengeid);
+            console.log(`${rankid}到达了结束时间`);
+            updateGameInfo(rankid, { status: 4 });
+            job = new schedule.scheduleJob(new Date(Date.now() + 10000), async () => {
+              console.log(`${rankid}发放奖励时间`);
+              let [game] = await queryGameByRankid(rankid);
+              let { winning_count, rewards, creater } = game;
+              rewards = rewards.split('&&');
+              let queue = await queryAppoinmentUserById(rankid);
+              let i = 0;
+              while (i < winning_count && queue.length) {
+                let { chuserid } = queue.shift();
+                let obj = {
+                  issue_uid: creater,
+                  name: `${rname}排名奖励`,
+                  integral: parseInt(rewards[i]),
+                  reward_uid: chuserid,
+                  description: '希望再接再厉',
+                  createtime: moment(Date.now()).format('YYYY-MM-DD HH:mm:ss'),
+                }
+                await insertReward(obj);
+                i++;
+              }
+              updateGameInfo(rankid, { status: 5 });
+              job.cancel();
+              gameAndJobMap.delete(rankid);
+            })
           })
         })
       })
     });
-    gameAndJobMap.set(challengeid, job);
+    gameAndJobMap.set(rankid, job);
   })
   return resBody(ctx, {
     message: '查询成功',
@@ -151,7 +182,7 @@ Game.patch('/set/appointment', async ctx => {
   }
   let { fieldCount } = info;
   if (fieldCount === 0) {
-    let res = await updateGameAppointment(rankid, num);
+    let res = await updateGameInfo(rankid, { reservation_num: num })
     return resBody(ctx, {
       message: '操作成功',
       data: res,
@@ -177,7 +208,7 @@ Game.get('/doinglist', async ctx => {
 
 Game.patch('/set/challenge_record', async ctx => {
   if (!tokenFailure(ctx.token, ctx)) return;
-  let body = format(ctx.request.body);
+  let body = format(ctx.request.body, ['finishtime']);
   let { challengeid } = body;
   if (!challengeid) {
     return resBody(ctx, {
@@ -185,10 +216,13 @@ Game.patch('/set/challenge_record', async ctx => {
       message: 'challengeid是必须的'
     })
   }
+  if (body.finishtime) {
+    body.finishtime = moment(parseInt(body.finishtime)).format('YYYY-MM-DD HH:mm:ss')
+  }
   let { uid } = ctx.info;
   let res = null;
   if (Object.keys(body).length > 1) {
-    // res = await updateChallengeRecord(uid, challengeid, body);
+    res = await updateChallengeRecord(uid, challengeid, body);
   }
   return resBody(ctx, {
     message: '操作成功',
@@ -317,6 +351,17 @@ Game.post('/isright/timu', async ctx => {
   return resBody(ctx, {
     message: '查询成功',
     data: flag,
+  })
+})
+
+Game.patch('/user/aboutgame', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let info = format(ctx.request.body);
+  let { uid } = ctx.info;
+  let res = await updateUserAboutGame(uid, info);
+  return resBody(ctx, {
+    message: '操作成功',
+    data: res,
   })
 })
 
