@@ -30,6 +30,11 @@ const {
   queryAppoinmentUserById,
   queryGameByRankid,
   insertReward,
+  queryMyRewards,
+  receiveIntegral,
+  queryAllFills,
+  queryAllMultis,
+  queryAllSingles,
 } = require('../db/views/game');
 
 Game.get('/danlist', async ctx => {
@@ -362,6 +367,61 @@ Game.patch('/user/aboutgame', async ctx => {
   return resBody(ctx, {
     message: '操作成功',
     data: res,
+  })
+})
+
+Game.get('/myrewards', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let res = await queryMyRewards(uid);
+  return resBody(ctx, {
+    message: '查询成功',
+    data: res,
+  })
+})
+
+Game.post('/receive/integral', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { id, num = 0 } = format(ctx.request.body);
+  let { uid } = ctx.info;
+  await updateUserAboutGame(uid, {
+    all_integral: num,
+    curr_integral: num,
+  })
+  let res = await receiveIntegral(id, uid);
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.get('/typetimu', async ctx => {
+  let { type, start, limit } = format(ctx.query);
+  let res = [];
+  if (type === 'singles') {
+    res = await queryAllSingles(start, limit);
+    res = res.map(temp => {
+      temp.options = temp.options.split('&&');
+      temp.res = temp.res.split('&&');
+      return temp;
+    })
+  } else if (type === 'multis') {
+    res = await queryAllMultis(start, limit);
+    res = res.map(temp => {
+      temp.options = temp.options.split('&&');
+      temp.res = temp.res.split('&&');
+      return temp;
+    })
+  } else if (type === 'fills') {
+    res = await queryAllFills(start, limit);
+    res = res.map(temp => {
+      temp.res_json = JSON.parse(temp.res_json);
+      return temp;
+    })
+  }
+  return resBody(ctx, {
+    message: '成功',
+    data: responseFormat(res),
   })
 })
 

@@ -149,6 +149,30 @@ const game = {
       where fillid = ?`;
     return queryFunc(sql, fid);
   },
+  queryAllSingles(start = 0, limit = 10) {
+    let sql = `
+      select singleid as id,name,img,options,res,description,options_count,score,uid,nickname,avatar
+      from singles s inner join user u on s.single_uid = u.uid
+      limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  },
+  queryAllMultis(start = 0, limit = 10) {
+    let sql = `
+      select multiid as id,name,img,options,res,description,options_count,res_count,score,uid,nickname,avatar
+      from multis m inner join user u on m.multi_uid = u.uid
+      limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  },
+  queryAllFills(start = 0, limit = 10) {
+    let sql = `
+      select fillid as id,name,img,res_json,description,res_count,score,uid,nickname,avatar
+      from fills f inner join user u on f.fill_uid = u.uid
+      limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  },
   updateGameInfo(rankid, info) {
     let keys = Object.keys(info);
     let intKeys = ['status'];
@@ -204,6 +228,19 @@ const game = {
     `;
     console.log(sql);
     return queryFunc(sql);
+  },
+  queryMyRewards(uid) {
+    let sql = `
+      select * from reward where reward_uid = ? order by isreceive asc
+    `;
+    return queryFunc(sql, uid);
+  },
+  receiveIntegral(id, uid) {
+    let sql = `
+      update reward set isreceive=1
+      where rewardid = ? and reward_uid = ?
+    `;
+    return queryFunc(sql, id, uid);
   },
 }
 
