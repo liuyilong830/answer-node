@@ -35,6 +35,12 @@ const {
   queryAllFills,
   queryAllMultis,
   queryAllSingles,
+  insertSingleTimu,
+  insertMultiTimu,
+  insertFillTimu,
+  queryOptionalGame,
+  insertCollectGame,
+  insertGame,
 } = require('../db/views/game');
 
 Game.get('/danlist', async ctx => {
@@ -95,13 +101,8 @@ Game.get('/ranklist/all', async ctx => {
 
 let gameAndJobMap = new Map();
 
-Game.get('/appointment', async ctx => {
-  if (!tokenFailure(ctx.token, ctx)) return;
-  let { start, limit } = format(ctx.query);
-  let { uid } = ctx.info;
-  let res = await queryAppointmentGame(uid, start, limit);
-  /* 暂时在这处理，今后需要移植到新增 game的接口中在新增成功之后就进行注册定时任务 */
-  res.forEach(item => {
+function registerTimeJob(games = []) {
+  games.forEach(item => {
     let { latetime, endtime, starttime, prompttime, rankid, rname } = item;
     if (gameAndJobMap.has(rankid)) return;
     if (Date.now() - new Date(starttime).getTime() > 0) return;
@@ -147,6 +148,15 @@ Game.get('/appointment', async ctx => {
     });
     gameAndJobMap.set(rankid, job);
   })
+}
+
+Game.get('/appointment', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { start, limit } = format(ctx.query);
+  let { uid } = ctx.info;
+  let res = await queryAppointmentGame(uid, start, limit);
+  /* 暂时在这处理，今后需要移植到新增 game的接口中在新增成功之后就进行注册定时任务 */
+  registerTimeJob(res);
   return resBody(ctx, {
     message: '查询成功',
     data: res,
@@ -422,6 +432,63 @@ Game.get('/typetimu', async ctx => {
   return resBody(ctx, {
     message: '成功',
     data: responseFormat(res),
+  })
+})
+
+Game.put('/insert/typetimu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { type, timu } = format(ctx.request.body);
+  let { uid } = ctx.info;
+  let res = {};
+  if (type === 'single') {
+    timu.res = timu.res.join('&&');
+    timu.options = timu.options.join('&&');
+    res = await insertSingleTimu(uid, timu);
+  } else if (type === 'multi') {
+    timu.res = timu.res.join('&&');
+    timu.options = timu.options.join('&&');
+    res = await insertMultiTimu(uid, timu);
+  } else if (type === 'fill') {
+    timu.res_json = JSON.stringify(timu.res_json);
+    res = await insertFillTimu(uid, timu);
+  }
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.get('/optional', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { uid } = ctx.info;
+  let res = responseFormat(await queryOptionalGame(uid));
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.put('/collect/gameandtimu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { rankid, id, type } = format(ctx.request.body);
+  let res = await insertCollectGame(rankid, id, type);
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.put('/insert', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let body = format(ctx.request.body);
+  let { uid } = ctx.info;
+  let res = await insertGame(uid, body);
+  let arr = await queryGameByRankid(res.insertId);
+  // 添加好挑战赛之后，就需要给挑战赛绑定定时任务
+  registerTimeJob(arr);
+  return resBody(ctx, {
+    message: '操作成功',
+    data: res,
   })
 })
 

@@ -1,4 +1,5 @@
-const { queryFunc, jointoStr, isdef } = require('../../utils');
+const { queryFunc } = require('../../utils');
+const moment = require('moment');
 
 const game = {
   queryDanList() {
@@ -241,6 +242,66 @@ const game = {
       where rewardid = ? and reward_uid = ?
     `;
     return queryFunc(sql, id, uid);
+  },
+  insertSingleTimu(uid, timu) {
+    let { name, img, options, res, description, options_count, score } = timu;
+    let sql = `
+      insert into singles(single_uid,${name ? 'name' : 'img'},options,res,description,options_count,score)
+      values(${uid},"${name || img}","${options}","${res}","${description}",${options_count},${score})
+    `;
+    return queryFunc(sql);
+  },
+  insertMultiTimu(uid, timu) {
+    let { name, img, options, res, description, options_count, res_count, score } = timu;
+    let sql = `
+      insert into multis(multi_uid,${name ? 'name' : 'img'},options,res,description,options_count,res_count,score)
+      values(${uid},"${name || img}","${options}","${res}","${description}",${options_count},${res_count},${score})
+    `;
+    return queryFunc(sql);
+  },
+  insertFillTimu(uid, timu) {
+    let { name, img, res_json, description, res_count, score } = timu;
+    let sql = `
+      insert into fills(fill_uid,${name ? 'name' : 'img'},res_json,description,res_count,score)
+      values(${uid},"${name || img}",'${res_json}',"${description}",${res_count},${score})
+    `;
+    return queryFunc(sql);
+  },
+  queryOptionalGame(uid) {
+    let sql = `
+      SELECT *
+      from rank_game
+      where TIMESTAMPDIFF(SECOND, NOW() , starttime) > 3600 and creater = ${uid}
+    `;
+    return queryFunc(sql);
+  },
+  insertCollectGame(rankid, id, type) {
+    let typeid = type === 'single' ? 's_id' : (type === 'multi' ? 'm_id' : 'f_id');
+    let sql = `
+      insert into collect_timu(r_id, ${typeid})
+      values(${rankid},${id})
+    `;
+    return queryFunc(sql);
+  },
+  insertGame(uid, info) {
+    let { rname,description,createtime,starttime,endtime,latetime,prompttime,winning_count,rewards } = info;
+    let format = 'YYYY-MM-DD HH:mm:ss';
+    let sql = `
+      insert into rank_game(rname,description,createtime,starttime,endtime,creater,latetime,prompttime,winning_count,rewards)
+      values(
+        "${rname}",
+        "${description}",
+        "${moment(createtime).format(format)}",
+        "${moment(starttime).format(format)}",
+        "${moment(endtime).format(format)}",
+        ${uid},
+        "${moment(latetime).format(format)}",
+        "${moment(prompttime).format(format)}",
+        ${winning_count},
+        "${rewards}"
+      )
+    `;
+    return queryFunc(sql);
   },
 }
 
