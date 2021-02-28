@@ -41,6 +41,9 @@ const {
   queryOptionalGame,
   insertCollectGame,
   insertGame,
+  queryAuditGame,
+  queryRankReward,
+  queryMyRewardByRankid,
 } = require('../db/views/game');
 
 Game.get('/danlist', async ctx => {
@@ -118,30 +121,6 @@ function registerTimeJob(games = []) {
           job = new schedule.scheduleJob(new Date(endtime), () => {
             console.log(`${rankid}到达了结束时间`);
             updateGameInfo(rankid, { status: 4 });
-            job = new schedule.scheduleJob(new Date(Date.now() + 10000), async () => {
-              console.log(`${rankid}发放奖励时间`);
-              let [game] = await queryGameByRankid(rankid);
-              let { winning_count, rewards, creater } = game;
-              rewards = rewards.split('&&');
-              let queue = await queryAppoinmentUserById(rankid);
-              let i = 0;
-              while (i < winning_count && queue.length) {
-                let { chuserid } = queue.shift();
-                let obj = {
-                  issue_uid: creater,
-                  name: `${rname}排名奖励`,
-                  integral: parseInt(rewards[i]),
-                  reward_uid: chuserid,
-                  description: '希望再接再厉',
-                  createtime: moment(Date.now()).format('YYYY-MM-DD HH:mm:ss'),
-                }
-                await insertReward(obj);
-                i++;
-              }
-              updateGameInfo(rankid, { status: 5 });
-              job.cancel();
-              gameAndJobMap.delete(rankid);
-            })
           })
         })
       })
@@ -471,6 +450,12 @@ Game.get('/optional', async ctx => {
 Game.put('/collect/gameandtimu', async ctx => {
   if (!tokenFailure(ctx.token, ctx)) return;
   let { rankid, id, type } = format(ctx.request.body);
+  if (!rankid || !id || !type) {
+    return resBody(ctx, {
+      message: 'rankid、id、type都是必选参数',
+      status: 403
+    })
+  }
   let res = await insertCollectGame(rankid, id, type);
   return resBody(ctx, {
     message: '成功',
@@ -488,6 +473,76 @@ Game.put('/insert', async ctx => {
   registerTimeJob(arr);
   return resBody(ctx, {
     message: '操作成功',
+    data: res,
+  })
+})
+
+Game.get('/audit', async ctx => {
+  let { start = 0, limit = 10 } = format(ctx.query);
+  let res = responseFormat(await queryAuditGame(start, limit));
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.get('/id', async ctx => {
+  let { rankid } = format(ctx.query);
+  if (!rankid) {
+    return resBody(ctx, {
+      message: 'rankid是必须的',
+      status: 403,
+    })
+  }
+  let [res] = (await queryGameByRankid(rankid)).map(item => {
+    item.rewards = item.rewards.split('&&').map(num => Number(num));
+    return item;
+  });
+
+  return resBody(ctx, {
+    message: '成功',
+    data: responseFormat(res),
+  })
+})
+
+Game.get('/rank/reward', async ctx => {
+  let { rankid } = format(ctx.query);
+  if (!rankid) {
+    return resBody(ctx, {
+      message: 'rankid是必须的',
+      status: 403,
+    })
+  }
+  let res = await queryRankReward(rankid);
+  let arr = res.map(item => {
+    let { uid } = item;
+    return queryMyRewardByRankid(rankid, uid);
+  })
+  ;(await Promise.all(arr)).forEach((item, i) => {
+    res[i].isreceive = item.length ? true : false;
+  })
+
+  return resBody(ctx, {
+    message: '成功',
+    data: responseFormat(res, ['isreceive']),
+  })
+})
+
+Game.put('/sendReward', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { name,integral,reward_uid,description, gameid } = format(ctx.request.body);
+  if (!name || !integral || !reward_uid || !description || !gameid) {
+    return resBody(ctx, {
+      message: '请确保参数都传入正确',
+      status: 403,
+    })
+  }
+  let { uid: issue_uid } = ctx.info;
+  let res = await insertReward({
+    issue_uid,name,integral,reward_uid,description,gameid
+  });
+  return resBody(ctx, {
+    message: '成功',
     data: res,
   })
 })

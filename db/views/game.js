@@ -222,10 +222,11 @@ const game = {
     let sql = `select * from rank_game where rankid = ?`;
     return queryFunc(sql, rankid);
   },
-  insertReward({issue_uid,name,integral,reward_uid,description,createtime}) {
+  insertReward({issue_uid,gameid,name,integral,reward_uid,description}) {
+    let createtime = moment(Date.now()).format('YYYY-MM-DD HH:mm:ss');
     let sql = `
-      insert into reward(issue_uid,name,integral,reward_uid,description,createtime)
-      values(${issue_uid},"${name}",${integral},${reward_uid},"${description}","${createtime}")
+      insert into reward(issue_uid,gameid,name,integral,reward_uid,description,createtime)
+      values(${issue_uid},${gameid},"${name}",${integral},${reward_uid},"${description}","${createtime}")
     `;
     console.log(sql);
     return queryFunc(sql);
@@ -302,6 +303,30 @@ const game = {
       )
     `;
     return queryFunc(sql);
+  },
+  queryAuditGame(start = 0, limit = 10) {
+    let sql = `
+      select *
+      from rank_game
+      where status = 4 or status = 5
+      order by status asc limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  },
+  queryRankReward(rankid) {
+    let sql = `
+      select *
+      from challenge_record c inner join user u on c.chuserid = u.uid
+      where rankid = ${rankid} and score != 0
+      order by score desc, time asc limit 0, 3
+    `;
+    return queryFunc(sql);
+  },
+  queryMyRewardByRankid(rankid, uid) {
+    let sql = `
+      select * from reward where gameid = ? and reward_uid = ?
+    `;
+    return queryFunc(sql, rankid, uid);
   },
 }
 
