@@ -1,4 +1,4 @@
-const { queryFunc } = require('../../utils');
+const { queryFunc, isdef, fomatUpdateStr } = require('../../utils');
 const moment = require('moment');
 
 const game = {
@@ -252,6 +252,16 @@ const game = {
     `;
     return queryFunc(sql);
   },
+  updateSingleTimu(uid, timu) {
+    let keys = ['name', 'img', 'options', 'res', 'description', 'options_count', 'score'];
+    let str = fomatUpdateStr(timu, keys);
+
+    let sql = `
+      update singles set ${str}
+      where single_uid = ${uid} and singleid = ${timu.id}
+    `;
+    return queryFunc(sql);
+  },
   insertMultiTimu(uid, timu) {
     let { name, img, options, res, description, options_count, res_count, score } = timu;
     let sql = `
@@ -260,11 +270,31 @@ const game = {
     `;
     return queryFunc(sql);
   },
+  updateMultiTimu(uid, timu) {
+    let keys = ['name', 'img', 'options', 'res', 'description', 'options_count', 'score', 'res_count'];
+    let str = fomatUpdateStr(timu, keys);
+
+    let sql = `
+      update multis set ${str}
+      where multi_uid = ${uid} and multiid = ${timu.id}
+    `;
+    return queryFunc(sql);
+  },
   insertFillTimu(uid, timu) {
     let { name, img, res_json, description, res_count, score } = timu;
     let sql = `
       insert into fills(fill_uid,${name ? 'name' : 'img'},res_json,description,res_count,score)
       values(${uid},"${name || img}",'${res_json}',"${description}",${res_count},${score})
+    `;
+    return queryFunc(sql);
+  },
+  updateFillTimu(uid, timu) {
+    let keys = ['name', 'img', 'res_json', 'description', 'res_count', 'score'];
+    let str = fomatUpdateStr(timu, keys);
+
+    let sql = `
+      update fills set ${str}
+      where fill_uid = ${uid} and fillid = ${timu.id}
     `;
     return queryFunc(sql);
   },
@@ -281,6 +311,22 @@ const game = {
     let sql = `
       insert into collect_timu(r_id, ${typeid})
       values(${rankid},${id})
+    `;
+    return queryFunc(sql);
+  },
+  insertCollectQues(qid, timuid, type) {
+    let typeid = type === 'single' ? 's_id' : (type === 'multi' ? 'm_id' : 'f_id');
+    let sql = `
+      insert into collect_timu(q_id, ${typeid})
+      values(${qid},${timuid})
+    `;
+    return queryFunc(sql);
+  },
+  deleteCollectQues(type, timuid) {
+    let typeid = type === 'single' ? 's_id' : (type === 'multi' ? 'm_id' : 'f_id');
+    let sql = `
+      delete from collect_timu
+      where ${typeid} = ${timuid}
     `;
     return queryFunc(sql);
   },
@@ -313,12 +359,13 @@ const game = {
     `;
     return queryFunc(sql);
   },
-  queryRankReward(rankid) {
+  queryRankReward(rankid, start, limit) {
+    let flag = isdef(start) || isdef(limit)
     let sql = `
       select *
       from challenge_record c inner join user u on c.chuserid = u.uid
       where rankid = ${rankid} and score != 0
-      order by score desc, time asc limit 0, 3
+      order by score desc, time asc ${flag ? '' : `limit ${start}, ${limit}`}
     `;
     return queryFunc(sql);
   },
@@ -328,6 +375,37 @@ const game = {
     `;
     return queryFunc(sql, rankid, uid);
   },
+  deleteTypeTimu(type, id, uid) {
+    let sql = `
+      delete from ${type}s
+      where ${type}id = ${id} and ${type}_uid = ${uid}
+    `;
+    return queryFunc(sql);
+  },
+  querySinglesByQid(qid, start, limit) {
+    let sql = `
+      select cid, q_id as qid, singleid as tid, name, single_uid as uid, img, options, res, description,options_count, score
+      from collect_timu c inner join singles s on c.s_id = s.singleid
+      where c.q_id = ${qid} limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  },
+  queryMultisByQid(qid, start, limit) {
+    let sql = `
+      select cid, q_id as qid, multiid as tid, name, multi_uid as uid, img, options, res, description,options_count, res_count, score
+      from collect_timu c inner join multis m on c.m_id = m.multiid
+      where c.q_id = ${qid} limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  },
+  queryFillsByQid(qid, start, limit) {
+    let sql = `
+      select cid, q_id as qid, fillid as tid, name, fill_uid as uid, img, res_json, description,res_count, score
+      from collect_timu c inner join fills f on c.f_id = f.fillid
+      where c.q_id = ${qid} limit ${start}, ${limit}
+    `;
+    return queryFunc(sql);
+  }
 }
 
 module.exports = game;

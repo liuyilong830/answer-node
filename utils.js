@@ -114,6 +114,21 @@ const jointoStr = function(obj, options = ['=', ',']) {
   return str.slice(0, str.length-1);
 }
 
+const fomatUpdateStr = function (obj, keys = []) {
+  let res = '';
+  keys.forEach(key => {
+    let val = obj[key];
+    if (isdef(val)) return;
+    let type = toType(val);
+    if (type === 'String') {
+      res += `${key}='${val}',`;
+    } else {
+      res += `${key}=${val},`;
+    }
+  })
+  return res.slice(0, res.length-1);
+}
+
 const isdef = function (target) {
   return typeof target === 'undefined' || target === null;
 }
@@ -128,4 +143,5 @@ module.exports = {
   jointoStr,
   identityInfo,
   isdef,
+  fomatUpdateStr,
 }

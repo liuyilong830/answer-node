@@ -44,6 +44,15 @@ const {
   queryAuditGame,
   queryRankReward,
   queryMyRewardByRankid,
+  insertCollectQues,
+  deleteTypeTimu,
+  updateSingleTimu,
+  deleteCollectQues,
+  updateMultiTimu,
+  updateFillTimu,
+  querySinglesByQid,
+  queryMultisByQid,
+  queryFillsByQid,
 } = require('../db/views/game');
 
 Game.get('/danlist', async ctx => {
@@ -437,6 +446,57 @@ Game.put('/insert/typetimu', async ctx => {
   })
 })
 
+Game.patch('/update/typetimu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let body = ctx.request.body;
+  let { type, id } = body;
+  let { uid } = ctx.info;
+  if (!type || !id) {
+    return resBody(ctx, {
+      message: 'type和id都是必须的参数',
+      status: 403,
+    })
+  }
+  let result = null;
+  if (type === 'single') {
+    if (body.res) body.res = body.res.join('&&');
+    if (body.options) body.options = body.options.join('&&');
+    result = await updateSingleTimu(uid, body)
+  } else if (type === 'multi') {
+    if (body.res) body.res = body.res.join('&&');
+    if (body.options) body.options = body.options.join('&&');
+    result = await updateMultiTimu(uid, body);
+  } else if (type === 'fill') {
+    body.res_json = JSON.stringify(body.res_json);
+    result = await updateFillTimu(uid, body);
+  }
+
+  return resBody(ctx, {
+    message: '成功',
+    data: result,
+  })
+})
+
+Game.delete('/delete/typetimu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { id, type } = format(ctx.query);
+  let { uid } = ctx.info;
+  if (!['single', 'multi', 'fill'].includes(type)) {
+    return resBody(ctx, {
+      message: 'type类型不正确',
+      status: 403,
+    })
+  }
+  // 先删除所有引用了该题目的数据
+  await deleteCollectQues(type, id);
+  // 删除题目
+  let res = await deleteTypeTimu(type, id, uid);
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
 Game.get('/optional', async ctx => {
   if (!tokenFailure(ctx.token, ctx)) return;
   let { uid } = ctx.info;
@@ -506,14 +566,14 @@ Game.get('/id', async ctx => {
 })
 
 Game.get('/rank/reward', async ctx => {
-  let { rankid } = format(ctx.query);
+  let { rankid, start, limit } = format(ctx.query);
   if (!rankid) {
     return resBody(ctx, {
       message: 'rankid是必须的',
       status: 403,
     })
   }
-  let res = await queryRankReward(rankid);
+  let res = await queryRankReward(rankid, start, limit);
   let arr = res.map(item => {
     let { uid } = item;
     return queryMyRewardByRankid(rankid, uid);
@@ -541,6 +601,72 @@ Game.put('/sendReward', async ctx => {
   let res = await insertReward({
     issue_uid,name,integral,reward_uid,description,gameid
   });
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.put('/collect/quesandtimu', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid, timuid, type } = format(ctx.request.body);
+  if (!qid || !timuid || !type) {
+    return resBody(ctx, {
+      message: 'rankid、timuid、type都是必选参数',
+      status: 403
+    })
+  }
+  let res = await insertCollectQues(qid, timuid, type);
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+Game.get('/ques_typetimu', async ctx => {
+  let { qid, start, limit, type } = ctx.query;
+  if (!qid) {
+    return resBody(ctx, {
+      message: 'qid是必选参数',
+      status: 403,
+    })
+  }
+  console.log(start, limit)
+  start = parseInt(start);
+  limit = parseInt(limit)
+  if (
+    start.toString() === 'NaN' ||
+    limit.toString() === 'NaN'
+  ) {
+    return resBody(ctx, {
+      status: 403,
+      message: '参数类型错误'
+    })
+  }
+
+  let res = null;
+  if (type === 'single') {
+    res = await querySinglesByQid(qid, start, limit);
+    res = res.map(item => {
+      item.options = item.options.split('&&');
+      item.res = item.res.split('&&');
+      return item;
+    })
+  } else if (type === 'multi') {
+    res = await queryMultisById(qid, start, limit);
+    res = res.map(item => {
+      item.options = item.options.split('&&');
+      item.res = item.res.split('&&');
+      return item;
+    })
+  } else if (type === 'fill') {
+    res = await queryFillsByQid(qid, start, limit);
+    res = res.map(item => {
+      item.res_json = JSON.parse(item.res_json);
+      return item;
+    })
+  }
+
   return resBody(ctx, {
     message: '成功',
     data: res,

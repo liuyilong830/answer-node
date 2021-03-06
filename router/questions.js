@@ -72,7 +72,7 @@ questions.put('/create', async (ctx) => {
   if (!tokenFailure(ctx.token, ctx)) return;
   let { uid, rid } = ctx.info;
   let body = format(ctx.request.body, ['icon', 'createtime']);
-  body.createtime = moment(parseInt(body.createtime)).format('YYYY-MM-DD HH:mm:ss');
+  body.createtime = moment(Date.now()).format('YYYY-MM-DD HH:mm:ss');
   if (rid === 1) {
     body.istoclass = 0;
   }
