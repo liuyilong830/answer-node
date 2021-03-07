@@ -631,7 +631,6 @@ Game.get('/ques_typetimu', async ctx => {
       status: 403,
     })
   }
-  console.log(start, limit)
   start = parseInt(start);
   limit = parseInt(limit)
   if (
@@ -653,7 +652,7 @@ Game.get('/ques_typetimu', async ctx => {
       return item;
     })
   } else if (type === 'multi') {
-    res = await queryMultisById(qid, start, limit);
+    res = await queryMultisByQid(qid, start, limit);
     res = res.map(item => {
       item.options = item.options.split('&&');
       item.res = item.res.split('&&');
