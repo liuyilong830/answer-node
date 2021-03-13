@@ -30,7 +30,16 @@ const {
   queryMyWrongTimuByTid,
   setQuestion,
   queryCollection,
+  queryCollectTimuByQid,
+  queryCurrMyGrade,
+  queryCurrGradeTop10,
+  queryCurrRankNum,
 } = require('../db/views/questions');
+const {
+  querySinglesById,
+  queryMultisById,
+  queryFillsById,
+} = require('../db/views/game')
 
 const BaseUserAbout = function(userid, quid) {
   this.userid = userid;
@@ -267,31 +276,37 @@ questions.get('/timus/all', async ctx => {
       message: 'quesid是必选参数'
     })
   }
-  let list = await queryTimus(quesid);
-  let singles = [], multis = [], shortanswers = [];
-  list.forEach(timu => {
-    timu.res = timu.res.split('&&');
-    timu.options = timu.options.split('&&');
-    if (timu.tnum === 0) {
-      timu.options = [];
-      shortanswers.push(timu);
-    } else if (timu.res.length < 2) {
-      singles.push(timu);
-    } else {
-      multis.push(timu);
+  let arr = await queryCollectTimuByQid(quesid);
+  let timus = {
+    singles: [],
+    multis: [],
+    fills: [],
+  };
+  for (let i = 0; i < arr.length; i++) {
+    let temp;
+    let res;
+    if (arr[i].s_id) {
+      temp = responseFormat((await querySinglesById(arr[i].s_id))[0]);
+      temp.options = temp.options.split('&&');
+      temp.res = temp.res.split('&&');
+      res = timus.singles;
+    } else if (arr[i].m_id) {
+      temp = responseFormat((await queryMultisById(arr[i].m_id))[0]);
+      temp.options = temp.options.split('&&');
+      temp.res = temp.res.split('&&');
+      res = timus.multis;
+    } else if (arr[i].f_id) {
+      temp = responseFormat((await queryFillsById(arr[i].f_id))[0]);
+      temp.res_json = JSON.parse(temp.res_json);
+      res = timus.fills;
     }
-  })
+    res.push(temp);
+  }
+
   return resBody(ctx, {
     message: '查询成功',
-    data: {
-      types: {
-        singles,
-        multis,
-        shortanswers
-      },
-      count: list.length
-    }
-  });
+    data: timus,
+  })
 })
 
 questions.get('/timu/operations', async ctx => {
@@ -498,6 +513,45 @@ questions.get('/collections', async ctx => {
   return resBody(ctx, {
     message: '查询成功',
     data: res,
+  })
+})
+
+questions.get('/curr/rankTop10', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid是必选参数'
+    })
+  }
+
+  let res = await queryCurrGradeTop10(qid);
+
+  return resBody(ctx, {
+    message: '成功',
+    data: res,
+  })
+})
+
+questions.get('/curr/mygrade', async ctx => {
+  if (!tokenFailure(ctx.token, ctx)) return;
+  let { qid } = format(ctx.query);
+  if (!qid) {
+    return resBody(ctx, {
+      status: 403,
+      message: 'qid是必选参数'
+    })
+  }
+  let { uid } = ctx.info;
+  let [res] = await queryCurrMyGrade(uid, qid);
+  let [info] = await queryCurrRankNum(qid);
+  return resBody(ctx, {
+    message: '成功',
+    data: {
+      ...res,
+      count: info.count,
+    },
   })
 })
 

@@ -120,13 +120,17 @@ const questions = {
     let sql = `insert into ques_operation(userid,quid) values(?,?)`;
     return queryFunc(sql, userid, quesid);
   },
-  updateQuestOpt(userid, {quesid, iszan, iscollection, iswork, finishtime, work_json}) {
+  updateQuestOpt(userid, {quesid, iszan, iscollection, iswork, time, finishtime, work_json, res_count, fail_count, score}) {
     let str = '';
     str += !isdef(iszan) ? `iszan=${iszan},` : '';
+    str += !isdef(res_count) ? `res_count=${res_count},` : '';
+    str += !isdef(fail_count) ? `fail_count=${fail_count},` : '';
     str += !isdef(iscollection) ? `iscollection=${iscollection},` : '';
     str += !isdef(iswork) ? `iswork=${iswork},` : '';
+    str += !isdef(time) ? `time=${time},`: '';
     str += !isdef(finishtime) ? `finishtime=${finishtime},`: '';
-    str += !isdef(work_json) ? `work_json='${work_json}'`: '';
+    str += !isdef(work_json) ? `work_json='${work_json}',`: '';
+    str += !isdef(score) ? `score=${score}`: '';
     if (str[str.length-1] === ',') {
       str = str.slice(0, str.length-1);
     }
@@ -138,9 +142,10 @@ const questions = {
   },
   queryFinishedQuestUser(quesid) {
     let sql = `
-      select u.uid, u.nickname, q.finishtime, q.iswork
+      select u.uid, u.nickname, q.finishtime, q.iswork, q.score
       from ques_operation q inner join user u on q.userid = u.uid
       where quid = ? and finishtime is not null
+      order by score desc, finishtime asc
     `;
     return queryFunc(sql, quesid);
   },
@@ -211,6 +216,40 @@ const questions = {
       `;
     }
     return queryFunc(sql, uid);
+  },
+  queryCollectTimuByQid(qid) {
+    let sql = `
+      select *
+      from collect_timu c
+      where c.q_id = ?
+    `;
+    return queryFunc(sql, qid);
+  },
+  queryCurrMyGrade(uid, qid) {
+    let sql = `
+      select * 
+      from ques_operation q inner join user u on q.userid = u.uid
+      where userid = ? and quid = ?
+    `;
+    return queryFunc(sql, uid, qid);
+  },
+  queryCurrRankNum(qid) {
+    let sql = `
+      select COUNT(*) as count
+      from ques_operation
+      where quid = ?
+      order by score desc
+    `;
+    return queryFunc(sql, qid);
+  },
+  queryCurrGradeTop10(qid) {
+    let sql = `
+      select * 
+      from ques_operation q inner join user u on q.userid = u.uid
+      where quid = ?
+      order by score desc, finishtime asc limit 0, 10
+    `;
+    return queryFunc(sql, qid);
   },
 }
 
